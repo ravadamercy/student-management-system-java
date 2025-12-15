@@ -1,216 +1,212 @@
 /**
- * Student Management System - Console Application
+ * Student Management System
  * Developer: Mercy Ravada
  * Description:
- *   A menu-driven Java application to manage student records using
- *   CRUD operations (Create, Read, Update, Delete).
- *   Includes input validation, error handling, duplicate ID checks,
- *   and search functionality.
+ * Console-based Java application using JDBC to perform
+ * CRUD operations on student records stored in MySQL.
  */
-import java.util.ArrayList;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.Scanner;
 
 public class StudentManagement {
-    private ArrayList<Student> students = new ArrayList<>();
+
     private Scanner sc = new Scanner(System.in);
 
- private boolean idExists(int id) {
-    for (Student s : students) {
-        if (s.getId() == id) {
-            return true;
-        }
-    }
-    return false;
-}
-/**
- * Adds a new student to the system after validating input
- * and ensuring the ID does not already exist.
- */
-// Add
+    // ================= ADD STUDENT =================
     public void addStudent() {
-    System.out.print("Enter ID: ");
-    int id = sc.nextInt();
-    sc.nextLine(); // consume newline
+        try (Connection con = DBConnection.getConnection()) {
 
-    // day : 6 Prevent duplicate ID
-    if (idExists(id)) {
-        System.out.println("❌ ID already exists! Choose another ID.");
-        return;
-    }
+            System.out.print("Enter ID: ");
+            int id = sc.nextInt();
+            sc.nextLine();
 
-    System.out.print("Enter Name: ");
-    String name = sc.nextLine();
-    System.out.print("Enter Dept: ");
-    String dept = sc.nextLine();
-    System.out.print("Enter Marks: ");
-    int marks = sc.nextInt();
-    if (marks < 0) {
-    System.out.println("❌ Marks cannot be negative!");
-    return;
-}
+            System.out.print("Enter Name: ");
+            String name = sc.nextLine();
 
-    Student s = new Student(id, name, dept, marks);
-    students.add(s);
-    System.out.println("✅ Student added successfully!\n");
-}
+            System.out.print("Enter Dept: ");
+            String dept = sc.nextLine();
 
+            System.out.print("Enter Marks: ");
+            int marks = sc.nextInt();
 
-     /**
- * Displays all student records in the system.
- */
-
-    // View
-    public void viewStudents() {
-        if (students.isEmpty()) {
-            System.out.println("⚠️ No students found.");
-        } else {
-            System.out.println("\n--- Student List ---");
-            for (Student s : students) System.out.println(s);
-        }
-    }
-  
-    /**
- * Updates details of an existing student by ID.
- */
-
-    // Update
-    public void updateStudent() {
-        if (students.isEmpty()) {
-    System.out.println("⚠️ No student records available to update!");
-    return;
-}
-
-        System.out.print("Enter Student ID to update: ");
-        int id = sc.nextInt();
-        sc.nextLine(); // consume newline
-
-        boolean found = false;
-        for (Student s : students) {
-            if (s.getId() == id) {
-                found = true;
-                System.out.println("Student found: " + s);
-                System.out.println("What do you want to update?");
-                System.out.println("1. Name\n2. Dept\n3. Marks");
-                int choice = sc.nextInt();
-                sc.nextLine(); // consume newline
-
-                switch (choice) {
-                    case 1 -> {
-                        System.out.print("Enter new name: ");
-                        s.setName(sc.nextLine());
-                    }
-                    case 2 -> {
-                        System.out.print("Enter new department: ");
-                        s.setDept(sc.nextLine());
-                    }
-                    case 3 -> {
-                        System.out.print("Enter new marks: ");
-                          int newMarks = sc.nextInt();
-
-                        if (newMarks < 0) {
-                     System.out.println("❌ Marks cannot be negative!");
-                          return;
-                      }
-
-             s.setMarks(newMarks);
-
-                     
-                        
-                    }
-                    default -> System.out.println("Invalid choice!");
-                }
-                System.out.println("✅ Student updated successfully!\n");
-                break;
+            if (marks < 0) {
+                System.out.println("❌ Marks cannot be negative!");
+                return;
             }
-        }
-        if (!found) System.out.println("⚠️ Student with ID " + id + " not found.");
-    }
-    /**
-   Deletes a student record based on ID.
- */
-    // Method to delete a student
-public void deleteStudent() {
-     if (students.isEmpty()) {
-    System.out.println("⚠️ No student records available to delete!");
-    return;
-}
 
-    System.out.print("Enter Student ID to delete: ");
-    int id = sc.nextInt();
-    sc.nextLine(); // consume newline
+            String sql = "INSERT INTO students VALUES (?, ?, ?, ?)";
+            PreparedStatement ps = con.prepareStatement(sql);
 
-    boolean found = false;
-    for (Student s : students) {
-        if (s.getId() == id) {
-            students.remove(s);  // remove student from list
-            found = true;
-            System.out.println("🗑️ Student with ID " + id + " deleted successfully!\n");
-            break;
+            ps.setInt(1, id);
+            ps.setString(2, name);
+            ps.setString(3, dept);
+            ps.setInt(4, marks);
+
+            ps.executeUpdate();
+            System.out.println("✅ Student added successfully!");
+
+        } catch (Exception e) {
+            System.out.println("❌ Error: " + e.getMessage());
         }
     }
 
-    if (!found) {
-        System.out.println("⚠️ Student with ID " + id + " not found.");
-    }
-}
-/**
- * Searches and displays a student record by ID.
- */
- // Search Student by ID
-public void searchStudent() {
-    if (students.isEmpty()) {
-    System.out.println("⚠️ No student records available to search!");
-    return;
-}
+    // ================= VIEW STUDENTS =================
+    public void viewStudents() {
+        try (Connection con = DBConnection.getConnection()) {
 
-    System.out.print("Enter Student ID to search: ");
-    int id = sc.nextInt();
-    sc.nextLine(); // consume newline
+            String sql = "SELECT * FROM students";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
 
-    boolean found = false;
-    for (Student s : students) {
-        if (s.getId() == id) {
-            found = true;
-            System.out.println("🎯 Student Found:");
-            System.out.println(s);
-            break;
+            System.out.println("\nID | NAME | DEPT | MARKS");
+            System.out.println("------------------------");
+
+            boolean found = false;
+            while (rs.next()) {
+                found = true;
+                System.out.println(
+                        rs.getInt("id") + " | " +
+                        rs.getString("name") + " | " +
+                        rs.getString("dept") + " | " +
+                        rs.getInt("marks")
+                );
+            }
+
+            if (!found) {
+                System.out.println("⚠️ No students found.");
+            }
+
+        } catch (Exception e) {
+            System.out.println("❌ Error: " + e.getMessage());
         }
     }
 
-    if (!found) {
-        System.out.println("⚠️ No student found with ID " + id);
+    // ================= UPDATE STUDENT =================
+    public void updateStudent() {
+        try (Connection con = DBConnection.getConnection()) {
+
+            System.out.print("Enter Student ID: ");
+            int id = sc.nextInt();
+            sc.nextLine();
+
+            System.out.println("1. Update Name");
+            System.out.println("2. Update Dept");
+            System.out.println("3. Update Marks");
+            System.out.print("Choose option: ");
+            int choice = sc.nextInt();
+            sc.nextLine();
+
+            String field;
+            switch (choice) {
+                case 1 -> field = "name";
+                case 2 -> field = "dept";
+                case 3 -> field = "marks";
+                default -> {
+                    System.out.println("❌ Invalid choice!");
+                    return;
+                }
+            }
+
+            System.out.print("Enter new value: ");
+            String newValue = sc.nextLine();
+
+            if (field.equals("marks") && Integer.parseInt(newValue) < 0) {
+                System.out.println("❌ Marks cannot be negative!");
+                return;
+            }
+
+            String sql = "UPDATE students SET " + field + " = ? WHERE id = ?";
+            PreparedStatement ps = con.prepareStatement(sql);
+
+            if (field.equals("marks"))
+                ps.setInt(1, Integer.parseInt(newValue));
+            else
+                ps.setString(1, newValue);
+
+            ps.setInt(2, id);
+
+            int rows = ps.executeUpdate();
+            System.out.println(rows > 0 ? "✅ Updated successfully!" : "⚠️ Student not found.");
+
+        } catch (Exception e) {
+            System.out.println("❌ Error: " + e.getMessage());
+        }
     }
-}
 
+    // ================= DELETE STUDENT =================
+    public void deleteStudent() {
+        try (Connection con = DBConnection.getConnection()) {
 
+            System.out.print("Enter Student ID: ");
+            int id = sc.nextInt();
 
-    // Menu
+            String sql = "DELETE FROM students WHERE id = ?";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setInt(1, id);
+
+            int rows = ps.executeUpdate();
+            System.out.println(rows > 0 ? "🗑️ Deleted successfully!" : "⚠️ Student not found.");
+
+        } catch (Exception e) {
+            System.out.println("❌ Error: " + e.getMessage());
+        }
+    }
+
+    // ================= SEARCH STUDENT =================
+    public void searchStudent() {
+        try (Connection con = DBConnection.getConnection()) {
+
+            System.out.print("Enter Student ID: ");
+            int id = sc.nextInt();
+
+            String sql = "SELECT * FROM students WHERE id = ?";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setInt(1, id);
+
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                System.out.println(
+                        rs.getInt("id") + " | " +
+                        rs.getString("name") + " | " +
+                        rs.getString("dept") + " | " +
+                        rs.getInt("marks")
+                );
+            } else {
+                System.out.println("⚠️ Student not found.");
+            }
+
+        } catch (Exception e) {
+            System.out.println("❌ Error: " + e.getMessage());
+        }
+    }
+
+    // ================= MAIN MENU =================
     public static void main(String[] args) {
         StudentManagement sm = new StudentManagement();
         Scanner sc = new Scanner(System.in);
 
-        while (true) {       
+        while (true) {
             System.out.println("\n===== STUDENT MANAGEMENT SYSTEM =====");
-            System.out.println("\n1. Add Student");
+            System.out.println("1. Add Student");
             System.out.println("2. View Students");
             System.out.println("3. Update Student");
             System.out.println("4. Delete Student");
-            System.out.println("5. Search  Student");
+            System.out.println("5. Search Student");
             System.out.println("6. Exit");
             System.out.print("Choose option: ");
-            int choice ;
-          
 
-  try {
-    choice = sc.nextInt();
-} 
-  catch (Exception e) {
-    System.out.println("❌ Invalid input! Please enter numbers only.");
-    sc.nextLine(); // clear wrong input
-    continue;      // return to menu
-}
-
-
+            int choice;
+            try {
+                choice = sc.nextInt();
+            } catch (Exception e) {
+                System.out.println("❌ Enter numbers only!");
+                sc.nextLine();
+                continue;
+            }
 
             switch (choice) {
                 case 1 -> sm.addStudent();
@@ -218,11 +214,11 @@ public void searchStudent() {
                 case 3 -> sm.updateStudent();
                 case 4 -> sm.deleteStudent();
                 case 5 -> sm.searchStudent();
-                case 6 -> { System.out.println("\nExiting...");
-                   return;
-                 }
+                case 6 -> {
+                    System.out.println("Exiting...");
+                    return;
+                }
                 default -> System.out.println("Invalid choice!");
-
             }
         }
     }
